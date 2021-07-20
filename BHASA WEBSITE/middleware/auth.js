@@ -2,6 +2,7 @@ const Json_token = require('jsonwebtoken');
 const Users = require('../models/userModel');
 
 
+
 module.exports.verifyUser = function(req, res, next) {
     try {
         const token = req.headers.authorization.split(" ")[1];
