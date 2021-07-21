@@ -1,98 +1,66 @@
-// const express = require('express');
-// const userModel = require('../models/userModel');
-// const bcrypt = require('bcryptjs'); //Password hash
-// const jwt = require('jsonwebtoken'); //token generator
+const express = require("express");
+const userModel = require("../models/userModel");
+const bcrypt = require("bcryptjs");
+const Json_token = require("jsonwebtoken");
+const upload = require("../middleware/fileupload");
 
-// const upload = require("../middleware/fileupload");
+const router = new express.Router();
+const verifyUser = require("../middleware/auth");
 
-// /*** bulk export of the route ***/
-// const router = new express.Router();
-// const verifyUser = require('../middleware/auth');
+//user registration
+router.post("/user/register", function (req, res) {
+  const name = req.body.username;
+  const email = req.body.email;
+  const passwd = req.body.password;
+  const cpasswd = req.body.confirm_password;
 
-// //Register System
-// router.post('/user/register', verifyUser.verifyUser, function(req, res) {
-//     const un = req.body.username;
-//     const em = req.body.email;
-//     const pw = req.body.password;
+  userModel.findOne({ username: name }).then(function (user) {
+    if (user) {
+      res.send("user already exists");
+    } else {
+      if (passwd != cpasswd) {
+        res.send("password didn't match");
+      } else {
+        bcrypt.hash(passwd, 10, function (err, hash1) {
+          const data = new userModel({
+            username: name,
+            email: email,
+            password: hash1,
+          });
+          data
+            .save()
+            .then(function (result) {
+              res.status(201).json({ message: "Registered successfully" });
+            })
+            .catch(function (error) {
+              res.status(500).json({ message: error });
+            });
+        });
+      }
+    }
+  });
+});
 
-//     bcrypt.hash(pw, 10, function(err, hash1) {
+//Login authentication
+router.post("/user/login", function (req, res) {
+  const user = req.body.username;
+  const pass = req.body.password;
 
-//         const data = new userModel({ username: un, email: em, password: hash1 });
-//         data.save()
-//             .then(function(result) {
-//                 res.status(201).json({ message: "Registered successfully" });
-//             })
-//             .catch(function(error) {
-//                 res.status(500).json({ message: error })
-//             })
-//     })
-//     //const cpw = req.body.confirmpassword;
-// })
+  userModel
+    .findOne({ username: user })
+    .then(function (data) {
+      if (data === null) {
+        return res.status(403).json({ message: "Invalid Login" });
+      }
+      bcrypt.compare(pass, data.password, function (err, result) {
+        if (result === false) {
+          return res.status(403).json({ message: "Invalid Login" });
+        }
+        const token = Json_token.sign({ YourId: data._id }, "Anysecretkey");
+        res.status(200).json({ message: "Login Success" });
+      });
+    })
+    .catch();
+});
 
-
-// //data update in
-// router.put('/user/update', function(req, res) {
-//     const id = req.body.id;
-//     const profile_pic = req.body.profile_pic;
-//     userModel.updateOne({ _id: id }, { profile_pic: profile_pic })
-//         .then(function(result) {
-//             res.status(201).json({ message: "Profile Picture Updated!" })
-//         })
-//         .catch(function(error) {
-//             res.status(500).json({ message: error })
-//         });
-// })
-
-// /***** LOGIN SYSTEM *****/
-
-// router.post('/user/login', function(req, res) {
-
-//     /*** FIRST, WE NEED USERNAME AND PASSWORD FROM CLIENT ***/
-//     const username = req.body.username;
-//     const password = req.body.password;
-
-//     /*** SECOND, WE NEED TO CHECK IF THE USERNAME EXIST OR NOT ***/
-//     userModel.findOne({ username: username })
-//         .then(function(userData) {
-//             //all the data of username is now in the variable userData
-//             if (userData === null) {
-//                 //if the username not found.that means they are invalid users!!
-//                 return res.status(403).json({ message: "Invalid Credentials!" })
-//             }
-//             //valid users in terms of username
-//             //now compare the stored password with the given password
-//             bcrypt.compare(password, userData.password, function(err, result) {
-//                 if (result === false) {
-//                     //if password is incorrect...
-//                     return res.status(403).json({ message: "Invalid Credentials!" })
-//                 }
-//                 //if both username and password are correct...
-
-//                 //Now we need to create a token...
-//                 const token = jwt.sign({ userId: data._id }, 'anysecretkey')
-//                 res.status(200).json({ token: token, message: "Auth Success" })
-//             })
-//         })
-//         .catch()
-// })
-
-
-// //Photo upload
-// router.post("/profile/upload", upload.single("myimage"), function (req, res) {
-//     if (req.file == undefined) {
-//         return res.status(400).json({message : "only png/jpeg/gif files are allowed!"})
-//     }
-//     const data = new userModel({
-//         profile_pic: req.file.filename,
-//     })
-//     data.save()
-//         .then(function (result) {
-//             res.status(201).json({ message: "Profile Picture Uploaded!" });
-//         })
-//         .catch(function (error) {
-//             res.status(500).json({ message: error });
-//         });
-// });
-
-// //exporting router
-// module.exports = router;
+module.exports = router;
