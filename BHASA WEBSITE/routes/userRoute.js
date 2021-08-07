@@ -3,12 +3,13 @@ const userModel = require("../models/userModel");
 const bcrypt = require("bcryptjs");
 const Json_token = require("jsonwebtoken");
 const upload = require("../middleware/fileupload");
-
 const router = new express.Router();
 const verifyUser = require("../middleware/auth");
 
+
 //user registration
 router.post("/user/register", function (req, res) {
+  console.log(req.body.userData);
   const name = req.body.username;
   const email = req.body.email;
   const passwd = req.body.password;
@@ -62,5 +63,7 @@ router.post("/user/login", function (req, res) {
     })
     .catch();
 });
+
+
 
 module.exports = router;
